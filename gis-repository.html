@@ -1,0 +1,1621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GIS Research Repository</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0f1e;
+    --surface: #111827;
+    --card: #151d2e;
+    --border: #1e2d45;
+    --accent: #00d4ff;
+    --accent2: #f5c542;
+    --accent3: #4ade80;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --tag-bg: #1e3a5f;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* GRID BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* HEADER */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 48px 40px 32px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(0,212,255,0.05) 0%, transparent 100%);
+  }
+
+  .header-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .logo-area h1 {
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -2px;
+  }
+  .logo-area h1 span.gis { color: var(--accent); }
+  .logo-area h1 span.repo { color: var(--accent2); }
+  .logo-area p {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+    letter-spacing: 1px;
+  }
+
+  .stats {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .stat {
+    text-align: center;
+  }
+  .stat-num {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .stat-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* SEARCH + FILTER */
+  .controls {
+    max-width: 1400px;
+    margin: 28px auto 0;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 240px;
+  }
+  .search-wrap svg {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    width: 16px;
+    height: 16px;
+  }
+  #searchInput {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 14px 11px 40px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  #searchInput:focus { border-color: var(--accent); }
+  #searchInput::placeholder { color: var(--muted); }
+
+  .filter-wrap {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .filter-btn {
+    padding: 8px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .filter-btn:hover, .filter-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,212,255,0.08);
+  }
+
+  /* MAIN */
+  main {
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 32px auto;
+    padding: 0 24px;
+  }
+
+  .results-count {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 20px;
+    letter-spacing: 1px;
+  }
+  .results-count span { color: var(--accent); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+  }
+
+  /* CARD */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transition: transform 0.25s ease;
+    transform-origin: left;
+  }
+  .card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0,212,255,0.12);
+  }
+  .card:hover::before { transform: scaleX(1); }
+  .card.hidden { display: none; }
+
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .card-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .card-title {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--text);
+  }
+  .card-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+
+  .card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: var(--tag-bg);
+    color: var(--accent);
+    letter-spacing: 0.5px;
+  }
+  .tag.green { background: rgba(74,222,128,0.1); color: var(--accent3); }
+  .tag.yellow { background: rgba(245,197,66,0.1); color: var(--accent2); }
+
+  .expand-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    background: none;
+    border: 1px solid rgba(0,212,255,0.3);
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+  .expand-btn:hover {
+    background: rgba(0,212,255,0.1);
+  }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(6px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    max-width: 760px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 16px; right: 16px;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--border);
+    border: none;
+    color: var(--text);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    z-index: 10;
+  }
+  .modal-close:hover { background: var(--accent); color: #000; }
+
+  .modal-header {
+    padding: 28px 28px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-icon-title {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 10px;
+  }
+  .modal-icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+  }
+  .modal-title {
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+  .modal-desc {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .modal-body {
+    padding: 24px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .step {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(0,212,255,0.15);
+    border: 1px solid rgba(0,212,255,0.4);
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .step-text {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.6;
+    padding-top: 3px;
+  }
+
+  .datasets {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .dataset-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .dataset-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent3);
+    flex-shrink: 0;
+    margin-top: 5px;
+  }
+  .dataset-content { flex: 1; }
+  .dataset-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .dataset-url {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    word-break: break-all;
+  }
+
+  .tools-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .tool-pill {
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: rgba(245,197,66,0.1);
+    border: 1px solid rgba(245,197,66,0.3);
+    color: var(--accent2);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+  }
+
+  .no-results {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    display: none;
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  @media (max-width: 600px) {
+    header { padding: 28px 20px 20px; }
+    .controls { margin-top: 16px; }
+    main { padding: 0 16px; }
+    .grid { grid-template-columns: 1fr; }
+    .modal-body { padding: 20px; }
+    .modal-header { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="logo-area">
+      <h1><span class="gis">GIS</span> <span class="repo">Repository</span></h1>
+      <p>// QGIS Implementation Manual &amp; Dataset Guide</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-num">40</div><div class="stat-label">Topics</div></div>
+      <div class="stat"><div class="stat-num">8</div><div class="stat-label">Categories</div></div>
+      <div class="stat"><div class="stat-num">80+</div><div class="stat-label">Datasets</div></div>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="search-wrap">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 111 11a6 6 0 0116 0z"/></svg>
+      <input type="text" id="searchInput" placeholder="Search topics, tools, datasets...">
+    </div>
+    <div class="filter-wrap" id="filterWrap">
+      <button class="filter-btn active" data-cat="all">All</button>
+      <button class="filter-btn" data-cat="environment">Environment</button>
+      <button class="filter-btn" data-cat="urban">Urban</button>
+      <button class="filter-btn" data-cat="disaster">Disaster</button>
+      <button class="filter-btn" data-cat="agriculture">Agriculture</button>
+      <button class="filter-btn" data-cat="social">Social</button>
+      <button class="filter-btn" data-cat="water">Water</button>
+      <button class="filter-btn" data-cat="health">Health &amp; Safety</button>
+      <button class="filter-btn" data-cat="remote">Remote Sensing</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="results-count" id="resultsCount"><span id="countNum">40</span> topics found</div>
+  <div class="grid" id="grid"></div>
+  <div class="no-results" id="noResults">No topics found. Try a different search.</div>
+</main>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modal">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div class="modal-header" id="modalHeader"></div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+const topics = [
+  {
+    id: 1, cat: "environment",
+    icon: "🌍", color: "rgba(74,222,128,0.15)",
+    title: "GIS for Climate Change Analysis",
+    desc: "Studying the role of GIS in assessing climate change impacts on ecosystems.",
+    tags: ["Climate", "Ecosystem", "Raster Analysis"],
+    tools: ["QGIS", "Google Earth Engine", "SAGA GIS", "R (raster pkg)"],
+    steps: [
+      "Install QGIS and the Semi-Automatic Classification Plugin (SCP) for land cover analysis.",
+      "Download historical temperature/precipitation raster data from WorldClim or ERA5.",
+      "Load climate rasters into QGIS using Layer > Add Layer > Add Raster Layer.",
+      "Use Raster Calculator to compute anomalies: subtract baseline from current period.",
+      "Overlay with ecosystem vector layers (biomes, forests) from WWF or GBIF.",
+      "Run zonal statistics to quantify climate changes per ecosystem zone.",
+      "Visualize trends using graduated color maps and export as print layout.",
+      "Optionally connect to Google Earth Engine via the GEE Plugin for time-series analysis."
+    ],
+    datasets: [
+      { name: "WorldClim v2 - Historical Climate Data", url: "https://worldclim.org/data/worldclim21.html" },
+      { name: "ERA5 Reanalysis Data (Copernicus)", url: "https://cds.climate.copernicus.eu" },
+      { name: "NASA MODIS Land Cover", url: "https://lpdaac.usgs.gov/products/mcd12q1v006/" },
+      { name: "WWF Terrestrial Ecoregions", url: "https://www.worldwildlife.org/publications/terrestrial-ecoregions-of-the-world" }
+    ]
+  },
+  {
+    id: 2, cat: "urban",
+    icon: "🌡️", color: "rgba(239,68,68,0.15)",
+    title: "Urban Heat Island Mapping",
+    desc: "Using GIS to map and analyze urban heat islands in cities.",
+    tags: ["Urban", "Thermal", "Landsat", "LST"],
+    tools: ["QGIS", "SCP Plugin", "Landsat Imagery", "Python (rasterio)"],
+    steps: [
+      "Download Landsat 8/9 imagery for your city from USGS EarthExplorer (bands 4, 5, 10, 11).",
+      "Open QGIS and load the thermal infrared bands (Band 10 & 11).",
+      "Install the Semi-Automatic Classification Plugin (SCP) for atmospheric correction.",
+      "Convert DN (Digital Numbers) to Land Surface Temperature (LST) using the thermal band formula.",
+      "Calculate NDVI using NIR and Red bands via Raster Calculator: (NIR - Red) / (NIR + Red).",
+      "Compute emissivity from NDVI values and feed into LST retrieval equation.",
+      "Apply a diverging color ramp (cool-to-warm) to visualize hot spots.",
+      "Overlay with city boundary and urban land use layers for context."
+    ],
+    datasets: [
+      { name: "USGS EarthExplorer - Landsat 8/9", url: "https://earthexplorer.usgs.gov" },
+      { name: "OpenStreetMap Urban Boundaries", url: "https://www.openstreetmap.org" },
+      { name: "Global Urban Footprint (DLR)", url: "https://www.dlr.de/eoc/en/desktopdefault.aspx/tabid-9628/" },
+      { name: "NASA MODIS LST (MOD11A1)", url: "https://lpdaac.usgs.gov/products/mod11a1v006/" }
+    ]
+  },
+  {
+    id: 3, cat: "disaster",
+    icon: "🌊", color: "rgba(59,130,246,0.15)",
+    title: "Flood Risk Assessment using GIS",
+    desc: "Flood prediction and mitigation strategies using GIS and Remote Sensing.",
+    tags: ["Flood", "DEM", "Risk", "Remote Sensing"],
+    tools: ["QGIS", "SAGA GIS", "HEC-RAS", "GRASS GIS"],
+    steps: [
+      "Obtain a Digital Elevation Model (DEM) from SRTM or ALOS PALSAR.",
+      "Load DEM in QGIS and run Fill Sinks via SAGA (Processing > SAGA > Terrain Analysis).",
+      "Generate flow direction and flow accumulation rasters using SAGA or GRASS.",
+      "Delineate watershed boundaries using the SAGA Watershed Basins tool.",
+      "Download historical rainfall data and overlay flood-prone zones using flood hazard maps.",
+      "Classify flood risk levels (Low/Medium/High) using Raster Calculator thresholds.",
+      "Overlay population or infrastructure layers to assess exposure.",
+      "Export flood risk map as PDF using QGIS Print Layout."
+    ],
+    datasets: [
+      { name: "SRTM 30m DEM (NASA)", url: "https://www2.jpl.nasa.gov/srtm/" },
+      { name: "ALOS DEM (JAXA)", url: "https://www.eorc.jaxa.jp/ALOS/en/aw3d30/" },
+      { name: "Global Flood Database (GFD)", url: "https://global-flood-database.cloudtostreet.ai" },
+      { name: "NOAA Precipitation Data", url: "https://www.ncei.noaa.gov/products/precipitation" }
+    ]
+  },
+  {
+    id: 4, cat: "urban",
+    icon: "🏙️", color: "rgba(139,92,246,0.15)",
+    title: "GIS for Sustainable Urban Planning",
+    desc: "Optimizing land use and infrastructure for sustainable urban development.",
+    tags: ["Urban", "Land Use", "Planning", "Vector"],
+    tools: ["QGIS", "OpenStreetMap", "Urban Atlas", "InVEST"],
+    steps: [
+      "Download city administrative boundaries and land use data from OpenStreetMap or national GIS portals.",
+      "Load layers into QGIS and style by land use category (residential, commercial, green space, etc.).",
+      "Compute green space ratio: Use Field Calculator to divide park area by total city area.",
+      "Run Accessibility Analysis using Network Analyst or QNEAT3 plugin for transit coverage.",
+      "Overlay population density data to identify underserved areas.",
+      "Use Suitability Analysis (Weighted Overlay) for new development site selection.",
+      "Apply multi-criteria evaluation: slope, proximity to water, existing infra.",
+      "Generate a decision map and export for planning report."
+    ],
+    datasets: [
+      { name: "OpenStreetMap Data", url: "https://download.geofabrik.de" },
+      { name: "Urban Atlas (Copernicus)", url: "https://land.copernicus.eu/local/urban-atlas" },
+      { name: "WorldPop Population Data", url: "https://www.worldpop.org" },
+      { name: "Global Human Settlement Layer (GHSL)", url: "https://ghsl.jrc.ec.europa.eu" }
+    ]
+  },
+  {
+    id: 5, cat: "environment",
+    icon: "💨", color: "rgba(100,116,139,0.25)",
+    title: "Spatial Analysis of Air Quality",
+    desc: "Integrating GIS and Remote Sensing for air pollution monitoring and management.",
+    tags: ["Air Quality", "NO2", "Interpolation", "Health"],
+    tools: ["QGIS", "Sentinel-5P", "Python (pandas)", "IDW Interpolation"],
+    steps: [
+      "Download Sentinel-5P NO2/PM2.5 data from Copernicus Open Access Hub.",
+      "Load NetCDF files into QGIS using the NetCDF raster loader.",
+      "Clip data to your study area using the Clip Raster by Extent tool.",
+      "Collect ground-station air quality CSV data from EPA or local monitoring agencies.",
+      "Import CSV as delimited text layer (lat/lon columns) in QGIS.",
+      "Run IDW Interpolation (Raster > Interpolation > IDW) on station data.",
+      "Compare satellite vs ground station data using Raster Calculator.",
+      "Style with a custom color ramp (green to red) showing pollution gradient."
+    ],
+    datasets: [
+      { name: "Copernicus Sentinel-5P Tropomi", url: "https://s5phub.copernicus.eu" },
+      { name: "OpenAQ Air Quality Data", url: "https://openaq.org" },
+      { name: "EPA Air Quality System", url: "https://www.epa.gov/aqs" },
+      { name: "WHO Ambient Air Quality Database", url: "https://www.who.int/data/gho/data/themes/air-pollution" }
+    ]
+  },
+  {
+    id: 6, cat: "environment",
+    icon: "🔬", color: "rgba(34,197,94,0.15)",
+    title: "GIS in Environmental Impact Assessment",
+    desc: "Using GIS to assess the impact of development projects on the environment.",
+    tags: ["EIA", "Overlay", "Biodiversity", "Vector"],
+    tools: ["QGIS", "InVEST", "GBIF", "OpenStreetMap"],
+    steps: [
+      "Define the project area and create a study boundary polygon in QGIS.",
+      "Collect baseline layers: vegetation, water bodies, protected areas, soil type.",
+      "Download biodiversity data (species locations) from GBIF or national databases.",
+      "Perform buffer analysis around the project site (500m, 1km, 5km zones).",
+      "Overlay sensitive areas (wetlands, forest, protected zones) with project footprint.",
+      "Calculate area of impact using Field Calculator and Intersection tools.",
+      "Run change detection between pre-project and projected post-project land cover.",
+      "Generate impact score matrix and export as a map series."
+    ],
+    datasets: [
+      { name: "GBIF Biodiversity Data", url: "https://www.gbif.org" },
+      { name: "Protected Planet (WDPA)", url: "https://www.protectedplanet.net" },
+      { name: "Global Forest Watch", url: "https://www.globalforestwatch.org" },
+      { name: "FAO GeoNetwork Soils", url: "https://www.fao.org/geonetwork" }
+    ]
+  },
+  {
+    id: 7, cat: "disaster",
+    icon: "🔥", color: "rgba(249,115,22,0.15)",
+    title: "Forest Fire Risk Mapping",
+    desc: "Modeling and predicting forest fire risk using GIS.",
+    tags: ["Fire", "DEM", "NDVI", "Risk Model"],
+    tools: ["QGIS", "MODIS Fire Data", "SAGA GIS", "Python"],
+    steps: [
+      "Download MODIS Active Fire data (MCD14ML) from NASA FIRMS.",
+      "Load fire point data and forest cover rasters into QGIS.",
+      "Compute NDVI from Landsat imagery to assess vegetation dryness.",
+      "Get slope and aspect from DEM using QGIS Raster Terrain Analysis.",
+      "Download wind speed and temperature rasters from ERA5.",
+      "Build a fire risk model: combine NDVI, slope, aspect, distance to roads.",
+      "Use Weighted Overlay or Raster Calculator to create composite risk raster.",
+      "Classify into risk zones (Very High / High / Moderate / Low) and symbolize."
+    ],
+    datasets: [
+      { name: "NASA FIRMS Active Fire Data", url: "https://firms.modaps.eosdis.nasa.gov" },
+      { name: "MODIS NDVI Products", url: "https://lpdaac.usgs.gov/products/mod13a2v006/" },
+      { name: "Global Forest Change (Hansen)", url: "https://earthenginepartners.appspot.com/science-2013-global-forest" },
+      { name: "SRTM DEM for terrain", url: "https://earthexplorer.usgs.gov" }
+    ]
+  },
+  {
+    id: 8, cat: "water",
+    icon: "💧", color: "rgba(14,165,233,0.15)",
+    title: "Hydrological Modeling with GIS",
+    desc: "Analyzing surface water flow patterns and predicting water resource availability.",
+    tags: ["Hydrology", "DEM", "Watershed", "Flow"],
+    tools: ["QGIS", "SAGA GIS", "HEC-HMS", "SWAT"],
+    steps: [
+      "Download SRTM or ALOS DEM for the study watershed.",
+      "Pre-process DEM in SAGA: Fill Sinks > Flow Direction > Flow Accumulation.",
+      "Delineate stream networks using Flow Accumulation threshold.",
+      "Identify watershed/catchment boundaries using SAGA Watershed Basins.",
+      "Download precipitation data from CHIRPS or rain gauges (CSV) and interpolate.",
+      "Set up SWAT or HEC-HMS model parameters using the prepared layers.",
+      "Simulate runoff scenarios and import output tables back to QGIS.",
+      "Map water availability and risk zones, and export final hydrological map."
+    ],
+    datasets: [
+      { name: "CHIRPS Rainfall Data", url: "https://www.chc.ucsb.edu/data/chirps" },
+      { name: "HydroSHEDS Watershed Data", url: "https://www.hydrosheds.org" },
+      { name: "Global Runoff Data Centre", url: "https://www.bafg.de/GRDC" },
+      { name: "SRTM DEM (30m)", url: "https://www2.jpl.nasa.gov/srtm/" }
+    ]
+  },
+  {
+    id: 9, cat: "environment",
+    icon: "🦋", color: "rgba(34,197,94,0.15)",
+    title: "Biodiversity Conservation with GIS",
+    desc: "Using GIS to map and protect biodiversity hotspots.",
+    tags: ["Biodiversity", "Species", "Hotspot", "Conservation"],
+    tools: ["QGIS", "MaxEnt", "GBIF", "R (sf package)"],
+    steps: [
+      "Download species occurrence data from GBIF for your target species/region.",
+      "Download environmental variables: bioclim layers from WorldClim.",
+      "Load species points as CSV in QGIS (Add Delimited Text Layer).",
+      "Run Species Distribution Modeling using MaxEnt (external tool) with QGIS layers as input.",
+      "Import MaxEnt output raster into QGIS and classify by habitat suitability.",
+      "Overlay protected areas (WDPA) and identify gaps in conservation coverage.",
+      "Use Kernel Density Estimation to identify biodiversity hotspots.",
+      "Create a conservation priority map and export."
+    ],
+    datasets: [
+      { name: "GBIF Occurrence Records", url: "https://www.gbif.org/occurrence/search" },
+      { name: "WorldClim Bioclimatic Variables", url: "https://worldclim.org/data/bioclim.html" },
+      { name: "IUCN Red List Spatial Data", url: "https://www.iucnredlist.org/resources/spatial-data-download" },
+      { name: "Protected Planet WDPA", url: "https://www.protectedplanet.net/en/thematic-areas/wdpa" }
+    ]
+  },
+  {
+    id: 10, cat: "disaster",
+    icon: "🚨", color: "rgba(239,68,68,0.15)",
+    title: "GIS for Disaster Management",
+    desc: "Applications of GIS in emergency preparedness, response, and recovery.",
+    tags: ["Disaster", "Emergency", "Response", "Risk"],
+    tools: ["QGIS", "OpenStreetMap", "ESRI Web Maps", "GDAL"],
+    steps: [
+      "Collect administrative, road, and critical infrastructure data from OSM.",
+      "Download hazard maps (flood, earthquake, landslide) from national agencies.",
+      "Map vulnerable population groups using census data (elderly, disabled, etc.).",
+      "Run proximity analysis: distance from population to hospitals, shelters, roads.",
+      "Overlay all hazard layers to identify compound risk areas.",
+      "Use QGIS Network Analysis (QNEAT3) to compute evacuation routes.",
+      "Generate emergency response zone maps with resource allocation guidance.",
+      "Share via QGIS Cloud or export to PDF for field teams."
+    ],
+    datasets: [
+      { name: "UNDRR Global Risk Data", url: "https://risk.preventionweb.net" },
+      { name: "USGS Earthquake Hazard Data", url: "https://earthquake.usgs.gov/hazards/" },
+      { name: "OCHA HDX Humanitarian Data", url: "https://data.humdata.org" },
+      { name: "OpenStreetMap Critical Infra", url: "https://download.geofabrik.de" }
+    ]
+  },
+  {
+    id: 11, cat: "environment",
+    icon: "🌤️", color: "rgba(245,197,66,0.15)",
+    title: "Climate Vulnerability Mapping",
+    desc: "Identifying regions vulnerable to climate change effects using GIS tools.",
+    tags: ["Climate", "Vulnerability", "Index", "Policy"],
+    tools: ["QGIS", "Python", "WorldClim", "UNDP Data"],
+    steps: [
+      "Define vulnerability indicators: exposure (temperature rise), sensitivity (crop dependence), adaptive capacity (GDP, infrastructure).",
+      "Download datasets for each indicator from WorldBank, UNDP, and climate portals.",
+      "Normalize all indicators to a 0–1 scale using QGIS Field Calculator.",
+      "Assign weights to each indicator based on literature or expert judgment.",
+      "Combine weighted layers using Raster Calculator to produce a composite index.",
+      "Classify the composite raster into Low/Medium/High/Very High vulnerability.",
+      "Overlay administrative boundaries and add labels.",
+      "Export vulnerability atlas as a map series."
+    ],
+    datasets: [
+      { name: "ND-GAIN Country Index", url: "https://gain.nd.edu/our-work/country-index/download-data/" },
+      { name: "WorldBank Development Indicators", url: "https://databank.worldbank.org/source/world-development-indicators" },
+      { name: "IPCC AR6 Regional Data", url: "https://www.ipcc.ch/data/" },
+      { name: "INFORM Risk Index", url: "https://drmkc.jrc.ec.europa.eu/inform-index" }
+    ]
+  },
+  {
+    id: 12, cat: "environment",
+    icon: "🦁", color: "rgba(34,197,94,0.15)",
+    title: "GIS in Wildlife Habitat Analysis",
+    desc: "Studying wildlife migration patterns and habitat loss.",
+    tags: ["Wildlife", "Habitat", "Migration", "Corridor"],
+    tools: ["QGIS", "Movebank", "R (adehabitatHR)", "MaxEnt"],
+    steps: [
+      "Download animal GPS tracking data from Movebank.",
+      "Load point data into QGIS as a vector layer.",
+      "Compute Home Range using Kernel Density Estimation (KDE) via QGIS or R.",
+      "Download land cover data (ESA CCI or GlobCover) and classify habitats.",
+      "Identify habitat patches and analyze fragmentation using Morphological Spatial Pattern Analysis.",
+      "Overlay protected area boundaries to find gaps in habitat protection.",
+      "Model movement corridors using Least-Cost Path analysis in SAGA.",
+      "Map current vs historical habitat extent using change detection."
+    ],
+    datasets: [
+      { name: "Movebank Animal Tracking", url: "https://www.movebank.org" },
+      { name: "ESA CCI Land Cover", url: "https://www.esa-landcover-cci.org" },
+      { name: "GBIF Species Occurrences", url: "https://www.gbif.org" },
+      { name: "WWF WildFinder", url: "https://www.worldwildlife.org/pages/wildfinder" }
+    ]
+  },
+  {
+    id: 13, cat: "urban",
+    icon: "🏗️", color: "rgba(139,92,246,0.15)",
+    title: "3D GIS and Urban Modeling",
+    desc: "Exploring 3D city models for urban planning and disaster risk reduction.",
+    tags: ["3D", "CityGML", "LOD", "Urban"],
+    tools: ["QGIS", "QGIS2threejs", "Blender GIS", "CityGML"],
+    steps: [
+      "Download building footprint data with height attributes from OSM or open city data portals.",
+      "Load footprints into QGIS as a polygon vector layer.",
+      "Install the QGIS2threejs plugin for 3D visualization.",
+      "Configure QGIS2threejs to extrude buildings by height attribute.",
+      "Add a DEM base layer for terrain-accurate 3D rendering.",
+      "Alternatively, import CityGML files using the CityJSON plugin.",
+      "Analyze sun exposure, shadow, and view corridors in the 3D view.",
+      "Export 3D scene as interactive HTML or render in Blender GIS."
+    ],
+    datasets: [
+      { name: "OpenStreetMap 3D Buildings", url: "https://osmbuildings.org" },
+      { name: "NYC Open Data 3D Model", url: "https://www1.nyc.gov/site/doitt/initiatives/3d-building.page" },
+      { name: "CityGML Open Data", url: "https://www.citygml.org/samplefiles/" },
+      { name: "ALOS DEM for terrain", url: "https://www.eorc.jaxa.jp/ALOS/en/aw3d30/" }
+    ]
+  },
+  {
+    id: 14, cat: "agriculture",
+    icon: "🌱", color: "rgba(74,222,128,0.15)",
+    title: "Land Use / Land Cover Change Detection",
+    desc: "Analyzing land use changes over time using satellite imagery and GIS.",
+    tags: ["LULC", "Change Detection", "Landsat", "Classification"],
+    tools: ["QGIS", "SCP Plugin", "Google Earth Engine", "Python"],
+    steps: [
+      "Download multi-temporal Landsat or Sentinel-2 imagery (two time periods) from USGS or Copernicus.",
+      "Load both images in QGIS and perform atmospheric correction using the SCP plugin.",
+      "Classify each image using Supervised Classification (Random Forest or Maximum Likelihood) in SCP.",
+      "Define training samples for each land cover class (water, forest, urban, agriculture).",
+      "Run classification for both time periods.",
+      "Use Raster Calculator to create a change detection layer: subtract class maps.",
+      "Generate a land cover transition matrix using the SCP Post-Processing tools.",
+      "Calculate area statistics and visualize change maps."
+    ],
+    datasets: [
+      { name: "USGS EarthExplorer Landsat", url: "https://earthexplorer.usgs.gov" },
+      { name: "Copernicus Sentinel-2", url: "https://scihub.copernicus.eu" },
+      { name: "ESA CCI Land Cover", url: "https://www.esa-landcover-cci.org" },
+      { name: "Global Land Cover (GlobCover)", url: "http://due.esrin.esa.int/page_globcover.php" }
+    ]
+  },
+  {
+    id: 15, cat: "agriculture",
+    icon: "🌾", color: "rgba(245,197,66,0.15)",
+    title: "Soil Erosion Mapping with GIS",
+    desc: "Predicting and mapping soil erosion risk areas.",
+    tags: ["Erosion", "RUSLE", "DEM", "Soil"],
+    tools: ["QGIS", "SAGA GIS", "RUSLE Model", "SRTM DEM"],
+    steps: [
+      "Download DEM (SRTM), rainfall data (CHIRPS), soil data (FAO Soils), and land cover (ESA CCI).",
+      "Compute Slope and Flow Length in SAGA to derive LS-factor (topographic factor).",
+      "Compute R-factor (rainfall erosivity) from CHIRPS monthly precipitation using Python/Raster Calc.",
+      "Assign K-factor (soil erodibility) values from the HWSD soil database.",
+      "Assign C-factor (cover management) from land cover classification.",
+      "Assign P-factor (support practice) based on land use type.",
+      "Apply RUSLE equation: A = R × K × LS × C × P in Raster Calculator.",
+      "Classify erosion risk levels and visualize on map."
+    ],
+    datasets: [
+      { name: "FAO Harmonized World Soil Database", url: "https://www.fao.org/soils-portal/data-hub/soil-maps-and-databases/harmonized-world-soil-database-v12/en/" },
+      { name: "CHIRPS Rainfall Erosivity", url: "https://www.chc.ucsb.edu/data/chirps" },
+      { name: "ESA CCI Land Cover", url: "https://www.esa-landcover-cci.org" },
+      { name: "SRTM 30m DEM", url: "https://earthexplorer.usgs.gov" }
+    ]
+  },
+  {
+    id: 16, cat: "agriculture",
+    icon: "🚜", color: "rgba(34,197,94,0.15)",
+    title: "GIS and Agricultural Productivity",
+    desc: "Spatial analysis of crop yields, irrigation patterns, and land suitability.",
+    tags: ["Agriculture", "NDVI", "Crop Yield", "Suitability"],
+    tools: ["QGIS", "Google Earth Engine", "FAO Data", "MODIS"],
+    steps: [
+      "Download MODIS NDVI time-series data from LP DAAC or via GEE.",
+      "Import NDVI rasters for growing season months into QGIS.",
+      "Compute seasonal NDVI mean using Raster Calculator or Time Series Manager plugin.",
+      "Download crop mask / agricultural land use data from GLAM or FAO.",
+      "Mask NDVI to agricultural areas only.",
+      "Correlate NDVI trends with crop yield statistics from national databases.",
+      "Run Land Suitability Analysis: overlay slope, soil, rainfall, temperature layers.",
+      "Map irrigation coverage using canal network and surface water layers."
+    ],
+    datasets: [
+      { name: "MODIS NDVI (MOD13A3)", url: "https://lpdaac.usgs.gov/products/mod13a3v006/" },
+      { name: "FAO GeoNetwork Crop Data", url: "https://www.fao.org/geonetwork" },
+      { name: "GLAM Crop Monitoring", url: "https://glam1.gsfc.nasa.gov" },
+      { name: "GAEZ Land Suitability", url: "https://gaez.fao.org" }
+    ]
+  },
+  {
+    id: 17, cat: "water",
+    icon: "🏔️", color: "rgba(14,165,233,0.15)",
+    title: "Groundwater Mapping Using GIS",
+    desc: "Analyzing groundwater quality and distribution using GIS.",
+    tags: ["Groundwater", "Aquifer", "Interpolation", "Water Quality"],
+    tools: ["QGIS", "SAGA GIS", "Python (scipy)", "WHO Data"],
+    steps: [
+      "Collect borehole/well data including coordinates, depth, and water quality metrics.",
+      "Import well data as a CSV with lat/lon into QGIS.",
+      "Download geological maps and hydrogeological data from national surveys.",
+      "Run Kriging or IDW interpolation on water quality parameters.",
+      "Overlay with recharge zones, land use, and soil permeability layers.",
+      "Identify potential contamination sources using proximity analysis (buffer around industries, farms).",
+      "Compute a groundwater vulnerability index using DRASTIC model parameters.",
+      "Export a groundwater potential/vulnerability map."
+    ],
+    datasets: [
+      { name: "IGRAC Global Groundwater Data", url: "https://www.un-igrac.org/special-project/ggis" },
+      { name: "WHYMAP Groundwater Resources", url: "https://www.whymap.org" },
+      { name: "FAO AQUASTAT", url: "https://www.fao.org/aquastat/en/" },
+      { name: "USGS National Water Information System", url: "https://waterdata.usgs.gov" }
+    ]
+  },
+  {
+    id: 18, cat: "social",
+    icon: "🏛️", color: "rgba(168,85,247,0.15)",
+    title: "GIS and Archaeological Site Mapping",
+    desc: "Using spatial analysis to uncover and protect historical sites.",
+    tags: ["Archaeology", "Predictive Model", "Heritage", "LiDAR"],
+    tools: ["QGIS", "LiDAR data", "SAGA GIS", "R"],
+    steps: [
+      "Download LiDAR or high-resolution DEM data for the study area.",
+      "Process LiDAR using SAGA to generate hillshade, slope, and aspect maps.",
+      "Apply LiDAR visualization techniques (Sky View Factor, Local Relief Model) to detect anomalies.",
+      "Import known archaeological site locations from heritage databases.",
+      "Analyze environmental characteristics of known sites (elevation, proximity to water).",
+      "Build a predictive model using logistic regression or Random Forest in R/Python.",
+      "Map archaeological site potential across the study region.",
+      "Overlay with current land use and threat maps to prioritize conservation."
+    ],
+    datasets: [
+      { name: "OpenTopography LiDAR Data", url: "https://opentopography.org" },
+      { name: "ALOS DEM", url: "https://www.eorc.jaxa.jp/ALOS/en/aw3d30/" },
+      { name: "UNESCO World Heritage Sites", url: "https://whc.unesco.org/en/syndication" },
+      { name: "Europeana Heritage Data (Europe)", url: "https://www.europeana.eu" }
+    ]
+  },
+  {
+    id: 19, cat: "social",
+    icon: "📊", color: "rgba(249,115,22,0.15)",
+    title: "Mapping Socio-Economic Inequality",
+    desc: "Using GIS to visualize economic disparities across different regions.",
+    tags: ["Inequality", "Census", "Choropleth", "Social"],
+    tools: ["QGIS", "WorldBank Data", "Census Data", "Python"],
+    steps: [
+      "Download administrative boundary shapefiles and census data (income, education, health).",
+      "Load shapefiles into QGIS and join tabular census data via Layer Properties > Joins.",
+      "Calculate inequality indices (Gini coefficient) per region using Python or Field Calculator.",
+      "Create choropleth maps with graduated color schemes for each indicator.",
+      "Perform spatial autocorrelation analysis (Moran's I) using the Geoda plugin or Python.",
+      "Identify spatial clusters of high/low inequality using LISA statistics.",
+      "Overlay with infrastructure access layers (healthcare, schools, roads).",
+      "Generate an equity atlas with multiple indicators."
+    ],
+    datasets: [
+      { name: "WorldBank Open Data", url: "https://data.worldbank.org" },
+      { name: "HDX Humanitarian Data Exchange", url: "https://data.humdata.org" },
+      { name: "WorldPop Demographics", url: "https://www.worldpop.org" },
+      { name: "IPUMS Census Microdata", url: "https://international.ipums.org" }
+    ]
+  },
+  {
+    id: 20, cat: "social",
+    icon: "🏺", color: "rgba(245,197,66,0.15)",
+    title: "GIS for Cultural Heritage Preservation",
+    desc: "Mapping and preserving cultural heritage sites.",
+    tags: ["Heritage", "Risk", "Documentation", "Buffer"],
+    tools: ["QGIS", "OpenStreetMap", "UAV imagery", "Google Street View"],
+    steps: [
+      "Compile heritage site inventory with GPS coordinates and condition data.",
+      "Import point/polygon data into QGIS and attribute with heritage classification.",
+      "Download land use, development, and zoning layers from local government.",
+      "Identify threats: compute buffers around sites and overlay with development zones.",
+      "Use change detection on historic imagery vs current to identify site alterations.",
+      "Run hazard overlay: flood, fire, landslide risk vs heritage site locations.",
+      "Assess site visibility and access using viewshed analysis.",
+      "Generate heritage conservation priority map for planning authorities."
+    ],
+    datasets: [
+      { name: "UNESCO World Heritage List", url: "https://whc.unesco.org/en/list/" },
+      { name: "OSM Heritage Features", url: "https://wiki.openstreetmap.org/wiki/Key:historic" },
+      { name: "Google Earth Historical Imagery", url: "https://earth.google.com/web/" },
+      { name: "National Heritage Databases (local)", url: "https://openheritage3d.org" }
+    ]
+  },
+  {
+    id: 21, cat: "health",
+    icon: "🔍", color: "rgba(239,68,68,0.15)",
+    title: "GIS in Crime Pattern Analysis",
+    desc: "Mapping crime hotspots for law enforcement and public safety.",
+    tags: ["Crime", "Hotspot", "KDE", "Public Safety"],
+    tools: ["QGIS", "Kernel Density", "Python", "Crime Stats"],
+    steps: [
+      "Obtain crime incident data as CSV or shapefile from local police open data portals.",
+      "Import data into QGIS and display as point layer.",
+      "Perform Kernel Density Estimation (Heatmap) to identify hotspot areas.",
+      "Use the DBSCAN clustering algorithm (via Python/QGIS plugin) for crime cluster detection.",
+      "Overlay hotspots with street network, lighting, and demographic data.",
+      "Analyze temporal patterns by filtering data by time of day/week.",
+      "Compute near repeat victimization distances using the Near Repeat plugin.",
+      "Generate crime risk zones map for patrol optimization."
+    ],
+    datasets: [
+      { name: "Open Crime Data by City (Police Dept)", url: "https://data.cityofchicago.org/Public-Safety/Crimes-2001-to-Present/ijzp-q8t2" },
+      { name: "UK Crime Data", url: "https://data.police.uk/data/" },
+      { name: "OSM Street Network", url: "https://download.geofabrik.de" },
+      { name: "Social Explorer Census Data", url: "https://www.socialexplorer.com" }
+    ]
+  },
+  {
+    id: 22, cat: "urban",
+    icon: "📈", color: "rgba(139,92,246,0.15)",
+    title: "Urban Growth and Sprawl Analysis with GIS",
+    desc: "Tracking and analyzing urbanization trends.",
+    tags: ["Urban Sprawl", "Change Detection", "GHSL", "Growth"],
+    tools: ["QGIS", "GHSL", "Landsat", "SCP Plugin"],
+    steps: [
+      "Download multi-temporal Landsat imagery (1990, 2000, 2010, 2020) from EarthExplorer.",
+      "Classify each image as 'Urban' vs 'Non-Urban' using supervised classification in SCP.",
+      "Compute urban area statistics per time period using Field Calculator.",
+      "Create a growth animation using QGIS Temporal Controller.",
+      "Download GHSL built-up area data for validation and comparison.",
+      "Calculate sprawl metrics: compactness, fragmentation using Fragstats or Python.",
+      "Overlay with population data to compute per-capita urban land consumption.",
+      "Map growth direction and identify future expansion corridors."
+    ],
+    datasets: [
+      { name: "Global Human Settlement Layer (GHSL)", url: "https://ghsl.jrc.ec.europa.eu/download.php" },
+      { name: "USGS EarthExplorer Landsat", url: "https://earthexplorer.usgs.gov" },
+      { name: "GHS Urban Centre Database", url: "https://ghsl.jrc.ec.europa.eu/ghs_stat_ucdb2015mt_r2019a.php" },
+      { name: "ESA Urban Atlas", url: "https://land.copernicus.eu/local/urban-atlas" }
+    ]
+  },
+  {
+    id: 23, cat: "water",
+    icon: "🌊", color: "rgba(14,165,233,0.15)",
+    title: "GIS in Water Resource Management",
+    desc: "Mapping and monitoring watersheds and water bodies.",
+    tags: ["Watershed", "Water Bodies", "Management", "NDWI"],
+    tools: ["QGIS", "HydroSHEDS", "Sentinel-2", "SAGA GIS"],
+    steps: [
+      "Download HydroSHEDS watershed boundaries and river network data.",
+      "Load Sentinel-2 imagery and compute NDWI (Normalized Difference Water Index).",
+      "Threshold NDWI to extract water body extent as a raster.",
+      "Vectorize the water raster and calculate water body area and perimeter.",
+      "Compare multi-temporal NDWI to detect seasonal or long-term water level changes.",
+      "Overlay watershed boundaries with precipitation and evaporation data.",
+      "Compute runoff potential using the SCS-CN method in QGIS.",
+      "Map water stress zones by overlaying demand data with supply estimates."
+    ],
+    datasets: [
+      { name: "HydroSHEDS River Network", url: "https://www.hydrosheds.org/downloads" },
+      { name: "JRC Global Surface Water", url: "https://global-surface-water.appspot.com" },
+      { name: "Copernicus Sentinel-2", url: "https://scihub.copernicus.eu" },
+      { name: "AQUASTAT Water Resources", url: "https://www.fao.org/aquastat/en/" }
+    ]
+  },
+  {
+    id: 24, cat: "remote",
+    icon: "🌿", color: "rgba(74,222,128,0.15)",
+    title: "Remote Sensing for Deforestation Monitoring",
+    desc: "Assessing deforestation trends and impacts using satellite data.",
+    tags: ["Deforestation", "SAR", "Sentinel-1", "Forest Cover"],
+    tools: ["QGIS", "SNAP", "Google Earth Engine", "Global Forest Watch"],
+    steps: [
+      "Create a Global Forest Watch account and explore the forest change data portal.",
+      "Download Hansen Global Forest Change data (gain/loss layers) for your region.",
+      "Load GFC rasters into QGIS: tree cover, loss year, and gain layers.",
+      "Use Raster Calculator to isolate forest loss by specific year.",
+      "Download Sentinel-1 SAR data from Copernicus Hub for cloud-penetrating analysis.",
+      "Process SAR data in SNAP (Sentinel Application Platform): calibrate, speckle filter, terrain correct.",
+      "Import processed SAR to QGIS and compare with optical change detection.",
+      "Generate deforestation timeline and annual loss statistics."
+    ],
+    datasets: [
+      { name: "Global Forest Change (Hansen)", url: "https://earthenginepartners.appspot.com/science-2013-global-forest" },
+      { name: "Global Forest Watch Data", url: "https://www.globalforestwatch.org/dashboards/global/" },
+      { name: "Copernicus Sentinel-1 SAR", url: "https://scihub.copernicus.eu" },
+      { name: "PRODES Amazon Deforestation (INPE)", url: "http://terrabrasilis.dpi.inpe.br" }
+    ]
+  },
+  {
+    id: 25, cat: "health",
+    icon: "🏥", color: "rgba(239,68,68,0.15)",
+    title: "GIS for Public Health",
+    desc: "Mapping disease outbreaks and health service accessibility.",
+    tags: ["Disease", "Accessibility", "Health", "Epidemiology"],
+    tools: ["QGIS", "QNEAT3", "WHO Data", "OpenStreetMap"],
+    steps: [
+      "Download disease incidence data by administrative unit from WHO or national health ministries.",
+      "Join data to admin boundary shapefiles and create choropleth disease maps.",
+      "Map health facility locations (hospitals, clinics) from OSM or HSMA database.",
+      "Use QNEAT3 or Road Graph plugin to compute travel time to nearest health facility.",
+      "Identify areas with low healthcare access (>60 min travel time to nearest facility).",
+      "Overlay with population density to estimate underserved population counts.",
+      "Perform spatial cluster analysis of disease incidence (SaTScan or Kulldorff).",
+      "Generate health service gap map for policy recommendations."
+    ],
+    datasets: [
+      { name: "WHO Global Health Observatory", url: "https://www.who.int/data/gho" },
+      { name: "HealthSites.io Facility Locations", url: "https://healthsites.io" },
+      { name: "HDX Disease Outbreak Data", url: "https://data.humdata.org/dataset" },
+      { name: "WorldPop Population Grid", url: "https://www.worldpop.org" }
+    ]
+  },
+  {
+    id: 26, cat: "urban",
+    icon: "🚗", color: "rgba(139,92,246,0.15)",
+    title: "Transportation Network Analysis with GIS",
+    desc: "Analyzing transportation efficiency and accessibility using GIS.",
+    tags: ["Transport", "Network", "Routing", "Accessibility"],
+    tools: ["QGIS", "QNEAT3", "OSM", "pgRouting"],
+    steps: [
+      "Download road network data from OSM via Geofabrik or directly in QGIS using QuickOSM plugin.",
+      "Load road network and build a topological network using QNEAT3 plugin.",
+      "Define origin points (population centers) and destination points (jobs, services).",
+      "Run Iso-Area (Isochrone) analysis to show areas reachable within X minutes.",
+      "Compute Shortest Path between multiple origin-destination pairs.",
+      "Analyze network connectivity: identify bottlenecks using betweenness centrality.",
+      "Overlay with public transit routes and stops from GTFS data.",
+      "Visualize travel time maps and highlight accessibility gaps."
+    ],
+    datasets: [
+      { name: "OpenStreetMap Roads (Geofabrik)", url: "https://download.geofabrik.de" },
+      { name: "GTFS Transit Feed Data", url: "https://transitfeeds.com" },
+      { name: "Global Roads Open Access Data Set (gROADS)", url: "https://sedac.ciesin.columbia.edu/data/set/groads-global-roads-open-access-v1" },
+      { name: "HERE Open Maps (roads)", url: "https://platform.here.com/portal/overview" }
+    ]
+  },
+  {
+    id: 27, cat: "remote",
+    icon: "🛰️", color: "rgba(100,116,139,0.25)",
+    title: "Geospatial Analysis of Renewable Energy Sites",
+    desc: "Identifying suitable locations for wind farms and solar plants.",
+    tags: ["Solar", "Wind", "Suitability", "Energy"],
+    tools: ["QGIS", "PVGIS", "Global Wind Atlas", "Weighted Overlay"],
+    steps: [
+      "Download solar radiation data from PVGIS or Global Solar Atlas.",
+      "Download wind speed data from the Global Wind Atlas.",
+      "Load both rasters into QGIS and reproject to a common CRS.",
+      "Define exclusion zones: protected areas, water bodies, steep slopes, urban areas.",
+      "Create a binary exclusion mask using Raster Calculator.",
+      "Apply weighted overlay combining solar/wind potential with land constraints.",
+      "Classify output into energy suitability zones.",
+      "Overlay with transmission line infrastructure and roads for site accessibility scoring."
+    ],
+    datasets: [
+      { name: "Global Solar Atlas", url: "https://globalsolaratlas.info/download" },
+      { name: "Global Wind Atlas", url: "https://globalwindatlas.info/en/download/gis-files" },
+      { name: "PVGIS Solar Energy Tool", url: "https://re.jrc.ec.europa.eu/pvg_tools/en/" },
+      { name: "OpenStreetMap Power Infrastructure", url: "https://download.geofabrik.de" }
+    ]
+  },
+  {
+    id: 28, cat: "urban",
+    icon: "🌳", color: "rgba(34,197,94,0.15)",
+    title: "GIS and Green Infrastructure",
+    desc: "Designing green spaces in urban environments for sustainable development.",
+    tags: ["Green Space", "Urban", "NBS", "NDVI"],
+    tools: ["QGIS", "i-Tree", "NDVI", "OpenStreetMap"],
+    steps: [
+      "Download urban land use and green space data from OSM or city open data portals.",
+      "Map existing green infrastructure: parks, street trees, green roofs.",
+      "Compute NDVI from Sentinel-2 imagery to quantify vegetation coverage.",
+      "Calculate green space ratio per district using Zonal Statistics.",
+      "Identify green space deficits: areas with low NDVI and high population density.",
+      "Run walkability analysis: distance to nearest green space per resident.",
+      "Apply ecosystem service valuation using InVEST Urban module.",
+      "Propose new green space locations based on suitability analysis."
+    ],
+    datasets: [
+      { name: "Copernicus Urban Atlas Green Areas", url: "https://land.copernicus.eu/local/urban-atlas" },
+      { name: "Sentinel-2 NDVI via Copernicus", url: "https://scihub.copernicus.eu" },
+      { name: "OpenGreenMap Data", url: "https://opengreenmap.org" },
+      { name: "i-Tree Canopy Tool", url: "https://canopy.itreetools.org" }
+    ]
+  },
+  {
+    id: 29, cat: "social",
+    icon: "👥", color: "rgba(249,115,22,0.15)",
+    title: "Spatio-Temporal Analysis of Population Growth",
+    desc: "Studying population dynamics and migration trends.",
+    tags: ["Population", "Migration", "Census", "Temporal"],
+    tools: ["QGIS", "WorldPop", "QGIS Temporal Controller", "Python"],
+    steps: [
+      "Download WorldPop population rasters for multiple years (2000, 2010, 2020).",
+      "Load all rasters in QGIS and assign temporal metadata.",
+      "Use the QGIS Temporal Controller to animate population change over time.",
+      "Compute population change raster: Raster Calculator (Year2 – Year1).",
+      "Identify high-growth zones (urban fringe) vs declining areas (rural).",
+      "Download migration flow data from UN DESA or national statistics.",
+      "Map migration origins and destinations using flow map (graduated line symbols).",
+      "Correlate population growth with economic and infrastructure data."
+    ],
+    datasets: [
+      { name: "WorldPop Population Counts", url: "https://www.worldpop.org/geodata/listing?id=69" },
+      { name: "GHSL Population Grid", url: "https://ghsl.jrc.ec.europa.eu/ghs_pop2023.php" },
+      { name: "UN World Population Prospects", url: "https://population.un.org/wpp/" },
+      { name: "Census Bureau TIGER Files (USA)", url: "https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html" }
+    ]
+  },
+  {
+    id: 30, cat: "remote",
+    icon: "🌾", color: "rgba(74,222,128,0.15)",
+    title: "Remote Sensing for Crop Disease Monitoring",
+    desc: "Detecting crop diseases through satellite imagery and GIS analysis.",
+    tags: ["Crop Disease", "Hyperspectral", "NDRE", "Agriculture"],
+    tools: ["QGIS", "Sentinel-2", "Planet Labs", "Python (scikit-learn)"],
+    steps: [
+      "Download Sentinel-2 imagery with multiple spectral bands including Red Edge.",
+      "Compute vegetation indices: NDVI, NDRE, SAVI using Raster Calculator.",
+      "Anomaly detection: compare current NDVI with multi-year seasonal baseline.",
+      "Identify stressed areas (low NDVI relative to baseline) as potential disease zones.",
+      "Validate with field survey data: import GPS points of confirmed disease cases.",
+      "Train a classification model (Random Forest) using spectral signatures in Python.",
+      "Apply model to classify healthy vs diseased crops across the study area.",
+      "Map disease risk by field parcel and export for agronomist review."
+    ],
+    datasets: [
+      { name: "Copernicus Sentinel-2 (Red Edge bands)", url: "https://scihub.copernicus.eu" },
+      { name: "MODIS Vegetation Indices (MYD13A2)", url: "https://lpdaac.usgs.gov/products/myd13a2v006/" },
+      { name: "Planet Labs (commercial, free for research)", url: "https://www.planet.com/nicfi/" },
+      { name: "USDA Cropland Data Layer", url: "https://nassgeodata.gmu.edu/CropScape/" }
+    ]
+  },
+  {
+    id: 31, cat: "environment",
+    icon: "🛢️", color: "rgba(100,116,139,0.25)",
+    title: "GIS in Oil Spill Detection and Management",
+    desc: "Using GIS to detect and manage oil spill impacts on the environment.",
+    tags: ["Oil Spill", "SAR", "Marine", "Sentinel-1"],
+    steps: [
+      "Download Sentinel-1 SAR data from Copernicus Open Access Hub for the affected area.",
+      "Process SAR imagery in SNAP: calibration, speckle filtering, terrain correction.",
+      "Export processed SAR to QGIS as GeoTIFF.",
+      "Apply thresholding on backscatter values to detect oil slick (dark patches on sea surface).",
+      "Vectorize detected oil slick polygons and calculate area.",
+      "Overlay with current/wind data to model drift using trajectory models (GNOME).",
+      "Identify sensitive ecosystems and coastlines at risk using marine habitat maps.",
+      "Map cleanup priority zones and access routes."
+    ],
+    tools: ["QGIS", "Sentinel-1 SAR", "SNAP", "NOAA GNOME"],
+    datasets: [
+      { name: "Copernicus Sentinel-1 SAR", url: "https://scihub.copernicus.eu" },
+      { name: "NOAA Environmental Response Data", url: "https://response.restoration.noaa.gov/maps-and-spatial-data" },
+      { name: "GEBCO Ocean Bathymetry", url: "https://www.gebco.net/data_and_products/gridded_bathymetry_data/" },
+      { name: "Marine Regions EEZ Data", url: "https://www.marineregions.org" }
+    ]
+  },
+  {
+    id: 32, cat: "urban",
+    icon: "♻️", color: "rgba(74,222,128,0.15)",
+    title: "GIS for Solid Waste Management",
+    desc: "Optimizing waste collection and disposal routes using spatial analysis.",
+    tags: ["Waste", "Routing", "Network", "Optimization"],
+    tools: ["QGIS", "QNEAT3", "OSM", "Python (OR-Tools)"],
+    steps: [
+      "Map waste generation sources: residential, commercial, industrial zones.",
+      "Download road network from OSM using QuickOSM plugin.",
+      "Map existing waste collection points and disposal sites.",
+      "Build a routable network using QNEAT3 plugin.",
+      "Apply Vehicle Routing Problem (VRP) optimization using Python OR-Tools.",
+      "Compute optimal collection routes minimizing distance/time.",
+      "Identify underserved areas lacking waste collection access.",
+      "Propose new transfer station locations using weighted site selection."
+    ],
+    datasets: [
+      { name: "OpenStreetMap Road Network", url: "https://download.geofabrik.de" },
+      { name: "WorldBank Urban Waste Data", url: "https://datatopics.worldbank.org/what-a-waste/" },
+      { name: "Global Waste Atlas", url: "http://globalwasteatlas.iswa.org" },
+      { name: "OpenCities Africa Data", url: "https://opencitiesproject.org" }
+    ]
+  },
+  {
+    id: 33, cat: "remote",
+    icon: "🌲", color: "rgba(34,197,94,0.15)",
+    title: "Remote Sensing for Urban Vegetation Mapping",
+    desc: "Mapping and monitoring urban green spaces and vegetation health.",
+    tags: ["NDVI", "Urban Trees", "Sentinel-2", "Green Cover"],
+    tools: ["QGIS", "Sentinel-2", "SCP Plugin", "OBIA"],
+    steps: [
+      "Download high-resolution Sentinel-2 or Aerial imagery for your city.",
+      "Compute NDVI: (B8 - B4) / (B8 + B4) using Raster Calculator.",
+      "Classify vegetation using Object-Based Image Analysis (OBIA) via the Orfeo Toolbox plugin.",
+      "Distinguish tree canopy, grass, shrubs, and bare soil classes.",
+      "Calculate per-district green coverage percentages with Zonal Statistics.",
+      "Detect vegetation loss/gain by comparing with previous year imagery.",
+      "Map urban tree canopy using LiDAR or DSM-DTM difference (CHM).",
+      "Identify heat island areas with low vegetation for greening prioritization."
+    ],
+    datasets: [
+      { name: "Copernicus Sentinel-2", url: "https://scihub.copernicus.eu" },
+      { name: "Urban Atlas Green Urban Areas", url: "https://land.copernicus.eu/local/urban-atlas" },
+      { name: "OpenTreeMap", url: "https://www.opentreemap.org" },
+      { name: "City Open Data Portals (local tree inventory)", url: "https://data.cityofnewyork.us/Environment/2015-Street-Tree-Census-Tree-Data/pi5s-9p35" }
+    ]
+  },
+  {
+    id: 34, cat: "environment",
+    icon: "🐠", color: "rgba(14,165,233,0.15)",
+    title: "GIS for Coastal Zone Management",
+    desc: "Assessing erosion, flooding, and habitat changes in coastal areas.",
+    tags: ["Coastal", "Erosion", "Mangrove", "Sea Level"],
+    tools: ["QGIS", "CoastalDEM", "Sentinel-2", "SNAP"],
+    steps: [
+      "Download a high-accuracy coastal DEM (CoastalDEM or LIDAR from national agencies).",
+      "Map current shoreline using Sentinel-2 NIR band thresholding or NDWI.",
+      "Obtain historical shoreline data from USGS Digital Shoreline Analysis System (DSAS).",
+      "Install the DSAS plugin in QGIS and compute rates of shoreline change.",
+      "Map coastal habitats: mangroves, seagrass, coral reefs using supervised classification.",
+      "Model sea level rise inundation scenarios using Raster Calculator (DEM < 0.5m, 1m, 2m).",
+      "Overlay with coastal infrastructure and population data for vulnerability assessment.",
+      "Generate coastal risk atlas and export."
+    ],
+    datasets: [
+      { name: "CoastalDEM (Climate Central)", url: "https://www.climatecentral.org/coastaldem" },
+      { name: "USGS DSAS Shoreline Data", url: "https://www.usgs.gov/centers/whcmsc/science/digital-shoreline-analysis-system" },
+      { name: "Global Mangrove Watch", url: "https://www.globalmangrovewatch.org" },
+      { name: "Copernicus Sentinel-2", url: "https://scihub.copernicus.eu" }
+    ]
+  },
+  {
+    id: 35, cat: "remote",
+    icon: "📡", color: "rgba(100,116,139,0.25)",
+    title: "Multispectral vs Hyperspectral Imaging for Land Use",
+    desc: "Comparing the utility of multispectral and hyperspectral imaging.",
+    tags: ["Hyperspectral", "Multispectral", "Classification", "Land Use"],
+    tools: ["QGIS", "ENVI", "Python (spectral)", "PRISMA Data"],
+    steps: [
+      "Download Sentinel-2 (multispectral, 13 bands) and PRISMA (hyperspectral, 239 bands) data.",
+      "Load both datasets into QGIS and compare visual appearance.",
+      "Perform supervised classification on Sentinel-2 using SCP plugin.",
+      "Process hyperspectral data in QGIS or Python (spectral library) — apply PCA to reduce dimensions.",
+      "Classify hyperspectral data using SAM (Spectral Angle Mapper) algorithm.",
+      "Compare classification accuracy: generate confusion matrices for both.",
+      "Assess specific land use discrimination: e.g. crop types, mineral detection.",
+      "Document where hyperspectral outperforms multispectral and vice versa."
+    ],
+    datasets: [
+      { name: "Copernicus Sentinel-2 (Multispectral)", url: "https://scihub.copernicus.eu" },
+      { name: "PRISMA Hyperspectral (ASI - Italy)", url: "https://prisma.asi.it" },
+      { name: "AVIRIS Hyperspectral Data (NASA)", url: "https://aviris.jpl.nasa.gov/dataportal/" },
+      { name: "USGS Spectral Library", url: "https://crustal.usgs.gov/speclab/QueryAll07a.php" }
+    ]
+  },
+  {
+    id: 36, cat: "remote",
+    icon: "🔢", color: "rgba(168,85,247,0.15)",
+    title: "Geospatial Data Mining for Predictive Analysis",
+    desc: "Extracting valuable patterns from large geospatial datasets.",
+    tags: ["Data Mining", "ML", "Big Data", "Pattern Recognition"],
+    tools: ["QGIS", "Python (sklearn)", "Google Earth Engine", "PostGIS"],
+    steps: [
+      "Identify a geospatial prediction task (e.g., predicting flood-prone areas, crop yield).",
+      "Collect multi-source training data: satellite bands, terrain, climate, socio-economic layers.",
+      "Export all rasters to consistent resolution and CRS using QGIS Warp tool.",
+      "Use Python (rasterio + numpy) to stack rasters into a multi-band array.",
+      "Extract pixel-level feature vectors paired with known labels.",
+      "Train a Random Forest or XGBoost model using scikit-learn.",
+      "Apply model to predict across the entire study area.",
+      "Import prediction raster back into QGIS and visualize results."
+    ],
+    datasets: [
+      { name: "Google Earth Engine Data Catalog", url: "https://developers.google.com/earth-engine/datasets" },
+      { name: "Multi-resolution Land Characteristics (MRLC)", url: "https://www.mrlc.gov" },
+      { name: "Copernicus Data Space Ecosystem", url: "https://dataspace.copernicus.eu" },
+      { name: "Microsoft Planetary Computer", url: "https://planetarycomputer.microsoft.com" }
+    ]
+  },
+  {
+    id: 37, cat: "environment",
+    icon: "🌍", color: "rgba(34,197,94,0.15)",
+    title: "GIS in Renewable Energy Resource Monitoring",
+    desc: "Tracking the sustainability of forests, fisheries, and agriculture.",
+    tags: ["Renewable", "Forest", "Fisheries", "Sustainability"],
+    tools: ["QGIS", "Global Forest Watch", "FAO", "MODIS"],
+    steps: [
+      "Download forest cover data from Global Forest Watch or Hansen GFC.",
+      "Compute forest cover percentage per administrative unit using Zonal Statistics.",
+      "Monitor deforestation vs afforestation rates using multi-year NDVI trends.",
+      "Download fisheries data from FAO FishStatJ for marine area analysis.",
+      "Map exclusive economic zones (EEZ) using Marine Regions data.",
+      "Overlay fishing effort rasters with fish stock depletion risk zones.",
+      "Monitor agricultural land productivity using MODIS GPP (gross primary productivity).",
+      "Generate a sustainability dashboard map showing resource stress indicators."
+    ],
+    datasets: [
+      { name: "Global Forest Watch", url: "https://www.globalforestwatch.org" },
+      { name: "FAO FishStatJ Fisheries", url: "https://www.fao.org/fishery/statistics/software/fishstatj/en" },
+      { name: "MODIS GPP (MOD17A3)", url: "https://lpdaac.usgs.gov/products/mod17a3hgfv006/" },
+      { name: "Marine Regions EEZ", url: "https://www.marineregions.org" }
+    ]
+  },
+  {
+    id: 38, cat: "urban",
+    icon: "📦", color: "rgba(245,197,66,0.15)",
+    title: "GIS in Supply Chain Management",
+    desc: "Optimizing supply chain routes and logistics using spatial data.",
+    tags: ["Logistics", "Routing", "Network", "Supply Chain"],
+    tools: ["QGIS", "QNEAT3", "OSM", "Python (OR-Tools)"],
+    steps: [
+      "Map supply chain nodes: suppliers, warehouses, distribution centers, retail points.",
+      "Download road network for the logistics region from OSM.",
+      "Build a routable network in QGIS using QNEAT3.",
+      "Define origin-destination pairs for delivery routes.",
+      "Compute shortest/fastest paths using Dijkstra algorithm in QNEAT3.",
+      "Solve Vehicle Routing Problem using Python OR-Tools for fleet optimization.",
+      "Analyze last-mile delivery coverage and identify underserved zones.",
+      "Integrate real-time traffic data via HERE API for live routing updates."
+    ],
+    datasets: [
+      { name: "OpenStreetMap Road Network", url: "https://download.geofabrik.de" },
+      { name: "World Port Index (NOAA)", url: "https://msi.nga.mil/Publications/WPI" },
+      { name: "OpenAirportData", url: "https://ourairports.com/data/" },
+      { name: "UN Comtrade Trade Flow Data", url: "https://comtradeplus.un.org" }
+    ]
+  },
+  {
+    id: 39, cat: "agriculture",
+    icon: "💧", color: "rgba(14,165,233,0.15)",
+    title: "Remote Sensing for Soil Moisture Monitoring",
+    desc: "Analyzing soil moisture levels for drought prediction and water management.",
+    tags: ["Soil Moisture", "SAR", "SMAP", "Drought"],
+    tools: ["QGIS", "SMAP Data", "Sentinel-1", "SNAP"],
+    steps: [
+      "Download NASA SMAP (Soil Moisture Active Passive) L3 data from NSIDC.",
+      "Load SMAP HDF5 files using the QGIS GDAL HDF driver or convert via Python (h5py).",
+      "Clip soil moisture raster to study area extent.",
+      "Download Sentinel-1 SAR data for higher-resolution soil moisture retrieval.",
+      "Process Sentinel-1 in SNAP and apply change detection backscatter analysis.",
+      "Correlate SMAP soil moisture with Sentinel-1 backscatter for downscaling.",
+      "Compare soil moisture maps with rainfall data (CHIRPS) and land use.",
+      "Generate drought monitoring map showing moisture deficit zones."
+    ],
+    datasets: [
+      { name: "NASA SMAP Soil Moisture", url: "https://nsidc.org/data/smap" },
+      { name: "ESA CCI Soil Moisture", url: "https://www.esa-soilmoisture-cci.org" },
+      { name: "Copernicus Sentinel-1 SAR", url: "https://scihub.copernicus.eu" },
+      { name: "CHIRPS Rainfall", url: "https://www.chc.ucsb.edu/data/chirps" }
+    ]
+  },
+  {
+    id: 40, cat: "remote",
+    icon: "🤖", color: "rgba(168,85,247,0.15)",
+    title: "GIS and Machine Learning for Spatial Predictions",
+    desc: "Combining GIS with Machine Learning for predictive modeling.",
+    tags: ["Machine Learning", "Random Forest", "Deep Learning", "Prediction"],
+    tools: ["QGIS", "Python (sklearn, TensorFlow)", "GEE", "PostGIS"],
+    steps: [
+      "Define the spatial prediction task (land cover, disease risk, building detection, etc.).",
+      "Prepare feature layers: convert all rasters to the same CRS, resolution, extent.",
+      "Extract raster values at training sample points using QGIS Point Sampling Tool.",
+      "Export to CSV and train a Random Forest or CNN model in Python.",
+      "For deep learning: prepare image tiles using QGIS Tile Layer Plugin.",
+      "Train a U-Net or ResNet model for semantic segmentation tasks.",
+      "Apply trained model over full study area and generate prediction raster.",
+      "Evaluate model accuracy and visualize results back in QGIS."
+    ],
+    datasets: [
+      { name: "Google Earth Engine Datasets", url: "https://developers.google.com/earth-engine/datasets" },
+      { name: "Microsoft Building Footprints", url: "https://github.com/microsoft/GlobalMLBuildingFootprints" },
+      { name: "OpenStreetMap Training Data", url: "https://www.openstreetmap.org" },
+      { name: "SpaceNet Challenge Datasets", url: "https://spacenet.ai/datasets/" }
+    ]
+  }
+];
+
+const catColors = {
+  environment: '#22c55e', urban: '#8b5cf6', disaster: '#ef4444',
+  agriculture: '#f59e0b', social: '#f97316', water: '#0ea5e9',
+  health: '#ec4899', remote: '#6366f1'
+};
+
+let activeFilter = 'all';
+
+function renderCards(filtered) {
+  const grid = document.getElementById('grid');
+  const count = document.getElementById('countNum');
+  const noResults = document.getElementById('noResults');
+  grid.innerHTML = '';
+  count.textContent = filtered.length;
+  if (filtered.length === 0) {
+    noResults.style.display = 'block';
+  } else {
+    noResults.style.display = 'none';
+    filtered.forEach(t => {
+      const col = catColors[t.cat] || '#00d4ff';
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="card-header">
+          <div class="card-icon" style="background:${t.color || 'rgba(0,212,255,0.1)'};">${t.icon}</div>
+          <div class="card-title">${t.title}</div>
+        </div>
+        <div class="card-desc">${t.desc}</div>
+        <div class="card-tags">
+          ${t.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+          <span class="tag green">${t.cat}</span>
+        </div>
+        <button class="expand-btn">VIEW GUIDE →</button>
+      `;
+      card.querySelector('.expand-btn').addEventListener('click', () => openModal(t));
+      grid.appendChild(card);
+    });
+  }
+}
+
+function filterAndSearch() {
+  const query = document.getElementById('searchInput').value.toLowerCase();
+  let filtered = topics;
+  if (activeFilter !== 'all') filtered = filtered.filter(t => t.cat === activeFilter);
+  if (query) {
+    filtered = filtered.filter(t =>
+      t.title.toLowerCase().includes(query) ||
+      t.desc.toLowerCase().includes(query) ||
+      t.tags.some(tag => tag.toLowerCase().includes(query)) ||
+      (t.tools && t.tools.some(tool => tool.toLowerCase().includes(query)))
+    );
+  }
+  renderCards(filtered);
+}
+
+function openModal(t) {
+  const header = document.getElementById('modalHeader');
+  const body = document.getElementById('modalBody');
+  header.innerHTML = `
+    <div class="modal-icon-title">
+      <div class="modal-icon" style="background:${t.color || 'rgba(0,212,255,0.1)'};">${t.icon}</div>
+      <div class="modal-title">${t.title}</div>
+    </div>
+    <div class="modal-desc">${t.desc}</div>
+    <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:6px;">
+      ${t.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+      <span class="tag green">${t.cat}</span>
+    </div>
+  `;
+  body.innerHTML = `
+    <div>
+      <div class="section-label">🛠 TOOLS & SOFTWARE</div>
+      <div class="tools-row">${(t.tools||[]).map(tool => `<span class="tool-pill">${tool}</span>`).join('')}</div>
+    </div>
+    <div>
+      <div class="section-label">📋 IMPLEMENTATION STEPS</div>
+      <div class="steps">${(t.steps||[]).map((s,i) => `
+        <div class="step">
+          <div class="step-num">${i+1}</div>
+          <div class="step-text">${s}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div>
+      <div class="section-label">🗄 DATASETS & SOURCES</div>
+      <div class="datasets">${(t.datasets||[]).map(d => `
+        <div class="dataset-item">
+          <div class="dataset-dot"></div>
+          <div class="dataset-content">
+            <div class="dataset-name">${d.name}</div>
+            <div class="dataset-url">${d.url}</div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>
+  `;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+// Events
+document.getElementById('searchInput').addEventListener('input', filterAndSearch);
+document.getElementById('filterWrap').addEventListener('click', e => {
+  const btn = e.target.closest('.filter-btn');
+  if (!btn) return;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeFilter = btn.dataset.cat;
+  filterAndSearch();
+});
+document.getElementById('modalClose').addEventListener('click', () => {
+  document.getElementById('modalOverlay').classList.remove('open');
+});
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalOverlay'))
+    document.getElementById('modalOverlay').classList.remove('open');
+});
+
+renderCards(topics);
+</script>
+</body>
+</html>
